@@ -90,8 +90,11 @@ Iniciá sesión con el usuario (`Fito` por defecto) y la contraseña que definis
 | `npm run start` | Sirve el build de producción |
 | `npm run lint` | Corre ESLint |
 | `npm run typecheck` | Corre el chequeo de tipos de TypeScript sin emitir archivos |
+| `npm run format` | Formatea el código con Prettier |
+| `npm run prisma:generate` | Genera el Prisma Client a partir del schema |
 | `npm run prisma:studio` | Abre Prisma Studio (explorador visual de la base de datos) |
 | `npm run prisma:migrate` | Crea/aplica migraciones en desarrollo |
+| `npm run prisma:deploy` | Aplica migraciones pendientes en producción |
 | `npm run db:seed` | Carga categorías, productos de ejemplo y el usuario administrador |
 
 ## Estructura del proyecto
