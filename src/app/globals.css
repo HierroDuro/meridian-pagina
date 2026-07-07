@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * Design tokens.
+ * HSL channel values (no hsl() wrapper) so Tailwind can compose them with
+ * opacity modifiers, e.g. bg-primary/10. Dark mode overrides the same
+ * variable names under .dark so every component using them flips for free.
+ */
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222 20% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 20% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 20% 12%;
+
+    /* Cool blue used for primary actions and the search focus ring. */
+    --primary: 217 91% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 222 20% 20%;
+
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+
+    --accent: 220 14% 96%;
+    --accent-foreground: 222 20% 20%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Orange "Destacado" badge accent. */
+    --highlight: 27 96% 53%;
+    --highlight-foreground: 0 0% 100%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 217 91% 60%;
+
+    --radius: 0.65rem;
+  }
+
+  .dark {
+    --background: 222 24% 8%;
+    --foreground: 210 20% 94%;
+
+    --card: 222 22% 11%;
+    --card-foreground: 210 20% 94%;
+
+    --popover: 222 22% 11%;
+    --popover-foreground: 210 20% 94%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 24% 8%;
+
+    --secondary: 222 18% 16%;
+    --secondary-foreground: 210 20% 94%;
+
+    --muted: 222 18% 16%;
+    --muted-foreground: 218 11% 65%;
+
+    --accent: 222 18% 16%;
+    --accent-foreground: 210 20% 94%;
+
+    --destructive: 0 63% 48%;
+    --destructive-foreground: 0 0% 100%;
+
+    --highlight: 27 96% 58%;
+    --highlight-foreground: 0 0% 100%;
+
+    --border: 222 16% 20%;
+    --input: 222 16% 20%;
+    --ring: 217 91% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "cv11", "ss01";
+  }
+}
+
+@layer utilities {
+  /* Smooth, consistent color-scheme transition when toggling dark mode. */
+  .theme-transition,
+  .theme-transition * {
+    transition-property: background-color, border-color, color, box-shadow;
+    transition-duration: 200ms;
+    transition-timing-function: ease-in-out;
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+}
