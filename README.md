@@ -2,17 +2,15 @@
 
 Plataforma de ecommerce B2B (catálogo, filtros en tiempo real, modo oscuro) con un panel
 de administración oculto en `/admin`. Construido con Next.js 15 (App Router), React 19,
-TypeScript, Tailwind CSS, shadcn/ui, Prisma + PostgreSQL, NextAuth (Auth.js v5),
-Framer Motion, React Hook Form + Zod y TanStack Query.
+TypeScript, Tailwind CSS, shadcn/ui, Prisma, NextAuth (Auth.js v5), Framer Motion,
+React Hook Form + Zod y TanStack Query.
 
-> **Nota:** este proyecto fue generado en un entorno sin acceso a internet, por lo que
-> `npm install` **no se ejecutó todavía**. Seguí los pasos de abajo en tu computadora,
-> donde sí vas a tener conexión.
+La base de datos es **PostgreSQL** tanto en desarrollo como en producción (ver la sección
+[Producción](#producción-vercel) más abajo para el despliegue en Vercel).
 
 ## 1. Requisitos previos
 
 - Node.js 20 o superior
-- PostgreSQL 14+ (local, o con Docker — ver más abajo)
 - npm
 
 ## 2. Instalación
@@ -27,31 +25,19 @@ cp .env.example .env
 
 Abrí `.env` y completá, como mínimo:
 
-- `DATABASE_URL`: cadena de conexión a tu base PostgreSQL.
 - `NEXTAUTH_SECRET`: generalo con `openssl rand -base64 32`.
 - `ADMIN_PASSWORD`: la contraseña que quieras para el usuario administrador inicial
   (usuario `Fito` por defecto, configurable con `ADMIN_USERNAME`). **Se hashea con
   bcrypt al correr el seed — nunca queda en texto plano ni en el código.**
 
-## 3. Levantar PostgreSQL
+- `DATABASE_URL`: connection string de tu base Postgres (local, o la misma instancia
+  hosteada — Neon, Supabase, Vercel Postgres — que uses en producción).
 
-**Opción A — Docker (recomendado):**
-
-```bash
-docker compose up -d db
-```
-
-Esto levanta Postgres en `localhost:5432` con las credenciales que ya vienen
-configuradas en `.env.example` (usuario/clave `postgres`, base `b2b_ecommerce`).
-
-**Opción B — Postgres instalado localmente:** creá manualmente una base
-`b2b_ecommerce` y ajustá `DATABASE_URL` en `.env` con tus propias credenciales.
-
-## 4. Migraciones y datos de ejemplo
+## 3. Migraciones y datos de ejemplo
 
 ```bash
-# Crea las tablas
-npx prisma migrate dev --name init
+# Aplica las migraciones ya versionadas en prisma/migrations (crea las tablas)
+npx prisma migrate deploy
 
 # Carga ~40 productos de ejemplo, categorías y el usuario administrador
 npm run db:seed
@@ -60,7 +46,7 @@ npm run db:seed
 Si `ADMIN_PASSWORD` no está definido en `.env`, el seed falla a propósito con un
 mensaje explicando qué falta — así nunca se crea un admin sin contraseña.
 
-## 5. Correr el proyecto
+## 4. Correr el proyecto
 
 ```bash
 npm run dev
@@ -161,15 +147,47 @@ El layout (header de 75px, sidebar de filtros fija, grilla de tarjetas, etc.) es
 inspirado únicamente en la distribución visual de una captura de referencia
 proporcionada — ningún código ni recurso gráfico fue copiado de esa referencia.
 
-## Despliegue en producción
+## Producción: Vercel
 
-- Las imágenes subidas desde el panel se guardan en `public/uploads` del propio
-  servidor. Esto funciona bien en un servidor tradicional o en un contenedor
-  Docker con volumen persistente, pero **no en plataformas serverless** (Vercel,
-  AWS Lambda, etc.), donde el sistema de archivos es efímero o de solo lectura.
-  Para ese caso, reemplazá `src/app/api/upload/route.ts` por una subida a un
-  storage externo (S3, Cloudflare R2, Vercel Blob, etc.).
+El repo está listo para importarse directo en Vercel:
+
+1. **Importá el repo** desde el dashboard de Vercel (New Project → seleccioná este
+   repositorio de GitHub). El framework preset "Next.js" se detecta solo.
+
+2. **Creá una base Postgres** (Vercel Postgres, Neon, Supabase, etc.) y cargá su
+   connection string como variable de entorno `DATABASE_URL` en el proyecto de
+   Vercel — Settings → Environment Variables. `prisma/schema.prisma` ya usa
+   `provider = "postgresql"` y `prisma/migrations` ya tiene la migración inicial
+   generada para ese motor.
+
+3. **Cargá el resto de las variables** de `.env.example` en Vercel (Environment
+   Variables): `AUTH_SECRET`/`NEXTAUTH_SECRET`, `NEXT_PUBLIC_APP_DOMAIN`,
+   `NEXT_PUBLIC_SITE_URL` (tu dominio real de Vercel), `ADMIN_USERNAME` y
+   `ADMIN_PASSWORD`. No definas `NEXTAUTH_URL` (ver el comentario en
+   `.env.example` sobre por qué).
+
+4. **Corré las migraciones contra la base de producción** una vez que
+   `DATABASE_URL` esté configurada (desde tu máquina, apuntando a la misma base):
+
+   ```bash
+   npx prisma migrate deploy
+   npm run db:seed   # opcional: carga categorías, productos de ejemplo y el admin
+   ```
+
+5. **Deploy.** Cada push a la rama principal dispara un build automático en Vercel
+   (`npm install` → `postinstall` corre `prisma generate` → `npm run build`).
+
+## Otras notas de despliegue
+
+- Las imágenes subidas desde el panel se guardan en `public/uploads` **en disco**.
+  Eso funciona para los archivos que ya están commiteados en el repo (se sirven
+  como estáticos en el build), pero Vercel es serverless: el sistema de archivos
+  en producción es de solo lectura, así que **las imágenes que se suban desde el
+  admin en producción no van a persistir** entre despliegues. Para que las cargas
+  nuevas funcionen hay que reemplazar `src/app/api/upload/route.ts` por un storage
+  externo (Vercel Blob, S3, Cloudflare R2, etc.).
 - El rate limiting de login (`src/lib/rate-limit.ts`) guarda los contadores en
-  memoria del proceso. Sirve para una sola instancia; si se escala a múltiples
-  instancias/contenedores, reemplazarlo por un store compartido (Upstash Redis,
-  por ejemplo) para que todas las instancias compartan el mismo conteo.
+  memoria del proceso. En Vercel cada función serverless puede correr en una
+  instancia distinta, así que el conteo no se comparte entre invocaciones; para
+  un rate limiting robusto ahí, reemplazarlo por un store compartido (Upstash
+  Redis, por ejemplo).

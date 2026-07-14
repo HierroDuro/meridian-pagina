@@ -16,6 +16,10 @@ const badgeVariants = cva(
         // reference layout's featured-item highlight.
         highlight: "border-transparent bg-highlight text-highlight-foreground shadow-soft",
         success: "border-transparent bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
+        // "Agotado" badge — kept visually distinct from the solid-red
+        // "Oferta" badge (destructive) since a product can be both on sale
+        // and out of stock at once.
+        danger: "border-transparent bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
       },
     },
     defaultVariants: {

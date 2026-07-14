@@ -7,7 +7,6 @@ export interface ProductFiltersState {
   categorySlugs: string[];
   brands: string[];
   onSale: boolean;
-  inStock: boolean;
   featuredOnly: boolean;
   sort: "relevance" | "price-asc" | "price-desc" | "newest";
 }
@@ -18,7 +17,6 @@ interface ProductFiltersContextValue {
   toggleCategory: (slug: string) => void;
   toggleBrand: (brand: string) => void;
   setOnSale: (value: boolean) => void;
-  setInStock: (value: boolean) => void;
   setFeaturedOnly: (value: boolean) => void;
   setSort: (value: ProductFiltersState["sort"]) => void;
   clearAll: () => void;
@@ -30,7 +28,6 @@ const initialState: ProductFiltersState = {
   categorySlugs: [],
   brands: [],
   onSale: false,
-  inStock: false,
   featuredOnly: false,
   sort: "relevance",
 };
@@ -73,10 +70,6 @@ export function ProductFiltersProvider({ children }: { children: React.ReactNode
     (value: boolean) => setFilters((prev) => ({ ...prev, onSale: value })),
     [],
   );
-  const setInStock = React.useCallback(
-    (value: boolean) => setFilters((prev) => ({ ...prev, inStock: value })),
-    [],
-  );
   const setFeaturedOnly = React.useCallback(
     (value: boolean) => setFilters((prev) => ({ ...prev, featuredOnly: value })),
     [],
@@ -92,7 +85,6 @@ export function ProductFiltersProvider({ children }: { children: React.ReactNode
     filters.categorySlugs.length +
     filters.brands.length +
     (filters.onSale ? 1 : 0) +
-    (filters.inStock ? 1 : 0) +
     (filters.featuredOnly ? 1 : 0);
 
   const value = React.useMemo(
@@ -102,13 +94,12 @@ export function ProductFiltersProvider({ children }: { children: React.ReactNode
       toggleCategory,
       toggleBrand,
       setOnSale,
-      setInStock,
       setFeaturedOnly,
       setSort,
       clearAll,
       activeFilterCount,
     }),
-    [filters, setSearch, toggleCategory, toggleBrand, setOnSale, setInStock, setFeaturedOnly, setSort, clearAll, activeFilterCount],
+    [filters, setSearch, toggleCategory, toggleBrand, setOnSale, setFeaturedOnly, setSort, clearAll, activeFilterCount],
   );
 
   return (

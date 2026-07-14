@@ -7,6 +7,7 @@ import { ChevronDown, Boxes } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { SearchBar } from "@/components/products/search-bar";
+import { AccountMenu } from "@/components/layout/account-menu";
 import { cn } from "@/lib/utils";
 
 /**
@@ -56,6 +57,7 @@ export function Header() {
           <div className="hidden w-full max-w-md md:block lg:max-w-lg">
             <SearchBar />
           </div>
+          <AccountMenu />
           <ThemeToggle />
         </div>
       </div>

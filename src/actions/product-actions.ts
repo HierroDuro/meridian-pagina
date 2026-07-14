@@ -41,8 +41,12 @@ export async function createProduct(input: ProductInput): Promise<ActionResult> 
     };
   }
 
+  const { images, ...data } = parsed.data;
+
   try {
-    await prisma.product.create({ data: parsed.data });
+    await prisma.product.create({
+      data: { ...data, images: { create: images.map((url, order) => ({ url, order })) } },
+    });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return { success: false, message: "Ya existe un producto con ese SKU." };
@@ -67,8 +71,19 @@ export async function updateProduct(id: string, input: ProductInput): Promise<Ac
     };
   }
 
+  const { images, ...data } = parsed.data;
+
   try {
-    await prisma.product.update({ where: { id }, data: parsed.data });
+    // Replace the whole gallery on every save rather than diffing — product
+    // galleries are small (max 8), so this is simpler than tracking which
+    // individual images were added/removed/reordered.
+    await prisma.product.update({
+      where: { id },
+      data: {
+        ...data,
+        images: { deleteMany: {}, create: images.map((url, order) => ({ url, order })) },
+      },
+    });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
       return { success: false, message: "El producto ya no existe." };

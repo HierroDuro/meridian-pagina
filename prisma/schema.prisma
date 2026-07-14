@@ -3,6 +3,13 @@
 // Usar Prisma Client (con consultas parametrizadas) es en sí
 // mismo la principal defensa contra SQL Injection: nunca se
 // concatenan strings SQL a mano en este proyecto.
+//
+// Producción (Vercel) usa Postgres — apuntar DATABASE_URL a la base
+// Postgres y correr `npx prisma migrate deploy` (ver README).
+// Ningún modelo usa tipos o atributos exclusivos de un motor
+// (sin @db.Text ni @db.Decimal), heredado de cuando el desarrollo
+// local corría sobre SQLite, así que este cambio de provider no
+// requirió tocar ningún modelo.
 // ─────────────────────────────────────────────────────────────
 
 generator client {
@@ -26,23 +33,27 @@ model Category {
   @@map("categories")
 }
 
-/// Producto del catálogo B2B.
+/// Producto del catálogo B2B. Un único precio: cuando `isOnSale` está
+/// activo, el catálogo público solo agrega la etiqueta "OFERTA" — nunca
+/// un segundo precio ni un precio tachado.
 model Product {
-  id          String   @id @default(cuid())
-  sku         String   @unique
+  id          String  @id @default(cuid())
+  sku         String  @unique
   name        String
-  description String   @db.Text
+  description String
   brand       String
-  price       Decimal  @db.Decimal(12, 2)
-  stock       Int      @default(0)
+  price       Decimal
+  stock       Int     @default(0)
   imageUrl    String
-  isFeatured  Boolean  @default(false)
-  isActive    Boolean  @default(true)
-  isOnSale    Boolean  @default(false)
-  salePrice   Decimal? @db.Decimal(12, 2)
+  isFeatured  Boolean @default(false)
+  isActive    Boolean @default(true)
+  isOnSale    Boolean @default(false)
 
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  images        ProductImage[]
+  conversations Conversation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -57,15 +68,32 @@ model Product {
   @@map("products")
 }
 
-/// Rol de un usuario administrador. Se modela como enum para poder
-/// extender a roles adicionales (por ejemplo "editor") sin romper el schema.
+/// Imágenes adicionales de la galería de un producto (además de la
+/// imagen de portada en `Product.imageUrl`). El cliente puede pasar de
+/// una a otra en la tarjeta del catálogo; `order` define ese recorrido.
+model ProductImage {
+  id        String  @id @default(cuid())
+  url       String
+  order     Int     @default(0)
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+  @@map("product_images")
+}
+
+/// Rol de un usuario administrador. Todo el panel (incluida la sección
+/// "Consultas") lo maneja este único tipo de cuenta — no existe un rol de
+/// empleado separado.
 enum AdminRole {
   SUPER_ADMIN
   EDITOR
 }
 
-/// Usuario con acceso al panel /admin. Solo se guarda el hash bcrypt
-/// de la contraseña, nunca el valor en texto plano.
+/// Usuario con acceso al panel /admin. Solo se guarda el hash bcrypt de la
+/// contraseña, nunca el valor en texto plano.
 model AdminUser {
   id           String    @id @default(cuid())
   username     String    @unique
@@ -75,6 +103,8 @@ model AdminUser {
   lastLoginAt  DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+
+  sentMessages Message[]
 
   @@map("admin_users")
 }
@@ -89,4 +119,120 @@ model SiteConfig {
   updatedAt   DateTime @updatedAt
 
   @@map("site_config")
+}
+
+/// Cliente registrado en el catálogo público (distinto de `AdminUser`).
+/// Solo se guarda el hash bcrypt de la contraseña.
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  conversations       Conversation[]
+  sentMessages        Message[]
+  passwordResetTokens PasswordResetToken[]
+
+  @@map("users")
+}
+
+/// Token de un solo uso para "recuperar contraseña". En este entorno de
+/// desarrollo no hay proveedor de email configurado, así que el enlace de
+/// recupero se muestra directamente en la pantalla en vez de enviarse por
+/// correo — ver `requestPasswordReset` en customer-auth-actions.ts. Para
+/// producción, reemplazar ese paso por el envío real del link por email
+/// (Resend, SES, etc.) sin tocar el resto del flujo.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+/// Estado de una consulta. Se muestra tanto al cliente como al administrador.
+enum ConversationStatus {
+  NEW
+  IN_PROGRESS
+  WAITING_CUSTOMER
+  RESOLVED
+  CLOSED
+}
+
+/// Conversación de un cliente sobre un producto puntual. Un cliente puede
+/// tener a lo sumo una conversación no cerrada por producto — al volver a
+/// tocar "Consultar" sobre el mismo producto se retoma esta misma fila en
+/// vez de crear una nueva (ver `startConversation`).
+model Conversation {
+  id     String             @id @default(cuid())
+  status ConversationStatus @default(NEW)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  messages Message[]
+
+  // Marca de tiempo del último "está escribiendo": si es reciente (pocos
+  // segundos), el otro lado del chat muestra el indicador. No requiere
+  // WebSockets — el chat hace polling y lee este campo.
+  customerTypingAt DateTime?
+  employeeTypingAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([productId])
+  @@index([status])
+  @@map("conversations")
+}
+
+enum MessageSenderType {
+  CUSTOMER
+  EMPLOYEE
+}
+
+/// Mensaje individual dentro de una conversación. `senderUserId` se usa
+/// cuando `senderType = CUSTOMER` y `senderAdminId` cuando es `EMPLOYEE`
+/// (dos FKs nullable en vez de una relación polimórfica, que Prisma no
+/// soporta de forma nativa). "EMPLOYEE" acá identifica el lado staff del
+/// chat en general (hoy solo la cuenta de administrador), no un rol
+/// separado — no existe un `AdminRole.EMPLOYEE`.
+model Message {
+  id             String            @id @default(cuid())
+  conversationId String
+  conversation   Conversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderType     MessageSenderType
+
+  senderUserId String?
+  senderUser   User?   @relation(fields: [senderUserId], references: [id], onDelete: SetNull)
+
+  senderAdminId String?
+  senderAdmin   AdminUser? @relation(fields: [senderAdminId], references: [id], onDelete: SetNull)
+
+  body           String
+  attachmentUrl  String?
+  attachmentType String? // "image" | "pdf"
+
+  // Three-state "ticks" like WhatsApp: sent (row exists) -> delivered (the
+  // other party's client has fetched it, `deliveredAt` set) -> read (they
+  // had the conversation open/focused, `readAt` set). See getConversationMessages
+  // and markConversationRead in chat-actions.ts.
+  deliveredAt DateTime?
+  readAt      DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([conversationId])
+  @@map("messages")
 }

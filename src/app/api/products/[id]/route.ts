@@ -14,7 +14,10 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
   const { id } = await params;
   const product = await prisma.product.findUnique({
     where: { id },
-    include: { category: { select: { id: true, name: true, slug: true } } },
+    include: {
+      category: { select: { id: true, name: true, slug: true } },
+      images: { orderBy: { order: "asc" } },
+    },
   });
 
   if (!product) {
@@ -24,7 +27,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
   return NextResponse.json({
     ...product,
     price: Number(product.price),
-    salePrice: product.salePrice ? Number(product.salePrice) : null,
+    images: product.images.map((i) => i.url),
   });
 }
 
@@ -46,15 +49,24 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     );
   }
 
+  // `images`, when present, fully replaces the gallery (same contract as
+  // the admin form's server action) — omit it from the body to leave the
+  // existing gallery untouched on a partial update.
+  const { images, ...data } = parsed.data;
+
   try {
     const updated = await prisma.product.update({
       where: { id },
-      data: parsed.data,
+      data: {
+        ...data,
+        ...(images !== undefined && {
+          images: { deleteMany: {}, create: images.map((url, order) => ({ url, order })) },
+        }),
+      },
     });
     return NextResponse.json({
       ...updated,
       price: Number(updated.price),
-      salePrice: updated.salePrice ? Number(updated.salePrice) : null,
     });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {

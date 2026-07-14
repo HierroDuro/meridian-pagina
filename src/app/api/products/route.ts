@@ -3,6 +3,8 @@ import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { productQuerySchema } from "@/lib/validations/product.schema";
+import { fuzzyScore, productSearchText } from "@/lib/fuzzy-search";
+import { sortAvailableFirst } from "@/lib/utils";
 import type { ProductDTO, ProductListResponse } from "@/types/product";
 
 /**
@@ -14,7 +16,51 @@ import type { ProductDTO, ProductListResponse } from "@/types/product";
  * All query params are parsed through Zod before touching Prisma, and all
  * filtering is expressed as typed Prisma `where` clauses (never raw SQL),
  * which is what actually prevents SQL injection here.
+ *
+ * Text search is typo-tolerant (see lib/fuzzy-search.ts) rather than a
+ * plain SQL "contains": every non-text filter (category, brand, price,
+ * onSale, featuredOnly) still runs in the database, but once a search term
+ * is present, matching + ranking against that term happens in application
+ * code so it works identically on SQLite (dev) and Postgres (prod) without
+ * an engine-specific extension.
+ *
+ * Out-of-stock products are shown (marked "Agotado" client-side, see
+ * ProductCard) rather than hidden — they're just sorted after everything
+ * in stock (sortAvailableFirst). Because that ordering isn't expressible as
+ * a portable Prisma `orderBy`, results are always fetched in full and
+ * sorted/paginated in application code — fine at this catalog's size (low
+ * hundreds of rows), same tradeoff the fuzzy search path already makes.
  */
+
+function toDTO(
+  p: Prisma.ProductGetPayload<{
+    include: { category: { select: { id: true; name: true; slug: true } }; images: true };
+  }>,
+): ProductDTO {
+  return {
+    ...p,
+    price: Number(p.price),
+    images: p.images.map((i) => i.url),
+    createdAt: p.createdAt.toISOString(),
+    updatedAt: p.updatedAt.toISOString(),
+  };
+}
+
+function sortComparator(
+  sort: "relevance" | "price-asc" | "price-desc" | "newest",
+): (a: ProductDTO, b: ProductDTO) => number {
+  switch (sort) {
+    case "price-asc":
+      return (a, b) => a.price - b.price;
+    case "price-desc":
+      return (a, b) => b.price - a.price;
+    case "newest":
+      return (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    case "relevance":
+      return (a, b) => Number(b.isFeatured) - Number(a.isFeatured);
+  }
+}
+
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const rawParams = {
@@ -22,7 +68,6 @@ export async function GET(request: NextRequest) {
     categorySlugs: url.searchParams.getAll("categorySlugs"),
     brands: url.searchParams.getAll("brands"),
     onSale: url.searchParams.get("onSale") ?? undefined,
-    inStock: url.searchParams.get("inStock") ?? undefined,
     featuredOnly: url.searchParams.get("featuredOnly") ?? undefined,
     minPrice: url.searchParams.get("minPrice") ?? undefined,
     maxPrice: url.searchParams.get("maxPrice") ?? undefined,
@@ -41,23 +86,18 @@ export async function GET(request: NextRequest) {
 
   const query = parsed.data;
 
+  // Deliberately excludes the search term — text matching happens in JS
+  // below (see module doc comment) so it can be typo-tolerant. Deliberately
+  // has no stock filter either — out-of-stock products stay visible (see
+  // module doc comment) — only `isActive` (an explicit admin toggle) hides
+  // a product entirely.
   const where: Prisma.ProductWhereInput = {
     isActive: true,
-    ...(query.search && {
-      OR: [
-        { name: { contains: query.search, mode: "insensitive" } },
-        { brand: { contains: query.search, mode: "insensitive" } },
-        { sku: { contains: query.search, mode: "insensitive" } },
-        { description: { contains: query.search, mode: "insensitive" } },
-        { category: { name: { contains: query.search, mode: "insensitive" } } },
-      ],
-    }),
     ...(query.categorySlugs.length > 0 && {
       category: { slug: { in: query.categorySlugs } },
     }),
     ...(query.brands.length > 0 && { brand: { in: query.brands } }),
     ...(query.onSale && { isOnSale: true }),
-    ...(query.inStock && { stock: { gt: 0 } }),
     ...(query.featuredOnly && { isFeatured: true }),
     ...((query.minPrice !== undefined || query.maxPrice !== undefined) && {
       price: {
@@ -67,24 +107,14 @@ export async function GET(request: NextRequest) {
     }),
   };
 
-  const orderBy: Prisma.ProductOrderByWithRelationInput =
-    query.sort === "price-asc"
-      ? { price: "asc" }
-      : query.sort === "price-desc"
-        ? { price: "desc" }
-        : query.sort === "newest"
-          ? { createdAt: "desc" }
-          : { isFeatured: "desc" };
-
-  const [products, total, brandRows, priceAgg] = await Promise.all([
+  const [candidates, brandRows, priceAgg] = await Promise.all([
     prisma.product.findMany({
       where,
-      orderBy,
-      skip: (query.page - 1) * query.pageSize,
-      take: query.pageSize,
-      include: { category: { select: { id: true, name: true, slug: true } } },
+      include: {
+        category: { select: { id: true, name: true, slug: true } },
+        images: { orderBy: { order: "asc" } },
+      },
     }),
-    prisma.product.count({ where }),
     prisma.product.findMany({
       where: { isActive: true },
       select: { brand: true },
@@ -98,16 +128,32 @@ export async function GET(request: NextRequest) {
     }),
   ]);
 
-  const dtos: ProductDTO[] = products.map((p) => ({
-    ...p,
-    price: Number(p.price),
-    salePrice: p.salePrice ? Number(p.salePrice) : null,
-    createdAt: p.createdAt.toISOString(),
-    updatedAt: p.updatedAt.toISOString(),
-  }));
+  let dtos = candidates.map(toDTO);
+
+  if (query.search) {
+    const scored = dtos
+      .map((dto) => ({ dto, score: fuzzyScore(query.search, productSearchText(dto)) }))
+      .filter((s) => s.score > 0);
+    // "Relevance" while searching means fuzzy-match quality — leave that
+    // order alone. Any other explicit sort (price, newest) still applies
+    // to the matched set, same as it would with no search term.
+    if (query.sort === "relevance") {
+      scored.sort((a, b) => b.score - a.score);
+    }
+    dtos = scored.map((s) => s.dto);
+  }
+
+  if (!query.search || query.sort !== "relevance") {
+    dtos.sort(sortComparator(query.sort));
+  }
+
+  dtos = sortAvailableFirst(dtos);
+
+  const total = dtos.length;
+  const paged = dtos.slice((query.page - 1) * query.pageSize, query.page * query.pageSize);
 
   const response: ProductListResponse = {
-    products: dtos,
+    products: paged,
     total,
     page: query.page,
     pageSize: query.pageSize,

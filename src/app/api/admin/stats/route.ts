@@ -19,6 +19,7 @@ export async function GET() {
     onSale,
     totalCategories,
     inventoryAgg,
+    outOfStockProducts,
   ] = await Promise.all([
     prisma.product.count(),
     prisma.product.count({ where: { isActive: true } }),
@@ -27,6 +28,11 @@ export async function GET() {
     prisma.product.count({ where: { isOnSale: true } }),
     prisma.category.count(),
     prisma.product.findMany({ select: { price: true, stock: true } }),
+    prisma.product.findMany({
+      where: { stock: 0 },
+      select: { id: true, name: true, sku: true, imageUrl: true, isActive: true },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   const inventoryValue = inventoryAgg.reduce(
@@ -43,6 +49,7 @@ export async function GET() {
     onSale,
     totalCategories,
     inventoryValue,
+    outOfStockProducts,
   };
 
   return NextResponse.json(stats);

@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Loader2, Upload } from "lucide-react";
+import { Loader2, Upload, X, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { productSchema, type ProductInput } from "@/lib/validations/product.schema";
 import { createProduct, updateProduct } from "@/actions/product-actions";
+import { cn } from "@/lib/utils";
 import type { CategoryDTO, ProductDTO } from "@/types/product";
 
 interface ProductFormProps {
@@ -29,10 +30,15 @@ interface ProductFormProps {
   product?: ProductDTO;
 }
 
+const MAX_GALLERY_IMAGES = 8;
+
 export function ProductForm({ categories, product }: ProductFormProps) {
   const router = useRouter();
-  const [uploading, setUploading] = React.useState(false);
+  const [uploadingCover, setUploadingCover] = React.useState(false);
+  const [uploadingGallery, setUploadingGallery] = React.useState(false);
+  const [isDraggingGallery, setIsDraggingGallery] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const galleryInputRef = React.useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -51,9 +57,9 @@ export function ProductForm({ categories, product }: ProductFormProps) {
           brand: product.brand,
           price: product.price,
           isOnSale: product.isOnSale,
-          salePrice: product.salePrice ?? undefined,
           stock: product.stock,
           imageUrl: product.imageUrl,
+          images: product.images,
           categoryId: product.categoryId,
           isFeatured: product.isFeatured,
           isActive: product.isActive,
@@ -63,11 +69,12 @@ export function ProductForm({ categories, product }: ProductFormProps) {
           isActive: true,
           isOnSale: false,
           stock: 0,
+          images: [],
         },
   });
 
   const imageUrl = watch("imageUrl");
-  const isOnSale = watch("isOnSale");
+  const images = watch("images") ?? [];
 
   const onSubmit = async (values: ProductInput) => {
     const result = product
@@ -84,26 +91,79 @@ export function ProductForm({ categories, product }: ProductFormProps) {
     router.refresh();
   };
 
+  /** Uploads a file to /api/upload and returns its public URL, or null on failure. */
+  const uploadImage = async (file: File): Promise<string | null> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch("/api/upload", { method: "POST", body: formData });
+    const data = await res.json();
+
+    if (!res.ok) {
+      toast.error(data.error ?? "No se pudo subir la imagen");
+      return null;
+    }
+    return data.url as string;
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploading(true);
+    setUploadingCover(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
-      const data = await res.json();
-
-      if (!res.ok) {
-        toast.error(data.error ?? "No se pudo subir la imagen");
-        return;
-      }
-
-      setValue("imageUrl", data.url, { shouldValidate: true });
+      const url = await uploadImage(file);
+      if (url) setValue("imageUrl", url, { shouldValidate: true });
     } finally {
-      setUploading(false);
+      setUploadingCover(false);
+      e.target.value = "";
     }
+  };
+
+  /** Uploads as many of the given files as fit under MAX_GALLERY_IMAGES, in parallel. */
+  const handleGalleryFiles = async (fileList: FileList | File[]) => {
+    const files = Array.from(fileList).filter((f) => f.type.startsWith("image/"));
+    if (files.length === 0) return;
+
+    const remainingSlots = MAX_GALLERY_IMAGES - images.length;
+    if (remainingSlots <= 0) {
+      toast.error(`Ya alcanzaste el máximo de ${MAX_GALLERY_IMAGES} imágenes.`);
+      return;
+    }
+
+    const filesToUpload = files.slice(0, remainingSlots);
+    if (files.length > filesToUpload.length) {
+      toast(`Se subirán ${filesToUpload.length} de ${files.length} imágenes (máximo ${MAX_GALLERY_IMAGES}).`);
+    }
+
+    setUploadingGallery(true);
+    try {
+      const uploaded = await Promise.all(filesToUpload.map(uploadImage));
+      const successUrls = uploaded.filter((url): url is string => Boolean(url));
+      if (successUrls.length > 0) {
+        setValue("images", [...images, ...successUrls], { shouldValidate: true });
+      }
+    } finally {
+      setUploadingGallery(false);
+    }
+  };
+
+  const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.length) await handleGalleryFiles(e.target.files);
+    e.target.value = "";
+  };
+
+  const handleGalleryDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDraggingGallery(false);
+    if (e.dataTransfer.files?.length) await handleGalleryFiles(e.dataTransfer.files);
+  };
+
+  const removeGalleryImage = (index: number) => {
+    setValue(
+      "images",
+      images.filter((_, i) => i !== index),
+      { shouldValidate: true },
+    );
   };
 
   return (
@@ -160,21 +220,11 @@ export function ProductForm({ categories, product }: ProductFormProps) {
         )}
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label htmlFor="price">Precio</Label>
           <Input id="price" type="number" step="0.01" {...register("price")} />
           {errors.price && <p className="text-xs text-destructive">{errors.price.message}</p>}
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="salePrice">Precio oferta</Label>
-          <Input
-            id="salePrice"
-            type="number"
-            step="0.01"
-            disabled={!isOnSale}
-            {...register("salePrice")}
-          />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="stock">Stock</Label>
@@ -207,10 +257,10 @@ export function ProductForm({ categories, product }: ProductFormProps) {
               type="button"
               variant="outline"
               size="sm"
-              disabled={uploading}
+              disabled={uploadingCover}
               onClick={() => fileInputRef.current?.click()}
             >
-              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Subir imagen"}
+              {uploadingCover ? <Loader2 className="h-4 w-4 animate-spin" /> : "Subir imagen"}
             </Button>
             {errors.imageUrl && (
               <p className="mt-1 text-xs text-destructive">{errors.imageUrl.message}</p>
@@ -219,28 +269,86 @@ export function ProductForm({ categories, product }: ProductFormProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 rounded-lg border border-border p-4">
+      <div className="space-y-1.5">
+        <Label>Galería de imágenes</Label>
+        <p className="text-xs text-muted-foreground">
+          Imágenes adicionales que el cliente puede recorrer en la tarjeta del catálogo, además de
+          la imagen de portada. Podés seleccionar varias a la vez o arrastrarlas y soltarlas acá.
+        </p>
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            if (images.length < MAX_GALLERY_IMAGES) setIsDraggingGallery(true);
+          }}
+          onDragLeave={() => setIsDraggingGallery(false)}
+          onDrop={handleGalleryDrop}
+          className={cn(
+            "flex flex-wrap gap-3 rounded-lg p-2 pt-1 transition-colors",
+            isDraggingGallery && images.length < MAX_GALLERY_IMAGES
+              ? "bg-primary/5 ring-2 ring-primary/40"
+              : "ring-2 ring-transparent",
+          )}
+        >
+          {images.map((url, index) => (
+            <div
+              key={url + index}
+              className="group relative h-20 w-20 overflow-hidden rounded-lg border border-border bg-muted/40"
+            >
+              <Image src={url} alt={`Imagen ${index + 1}`} fill className="object-contain p-2" />
+              <button
+                type="button"
+                onClick={() => removeGalleryImage(index)}
+                className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground opacity-0 transition-opacity group-hover:opacity-100"
+                aria-label={`Quitar imagen ${index + 1}`}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+          {images.length < MAX_GALLERY_IMAGES && (
+            <>
+              <input
+                ref={galleryInputRef}
+                type="file"
+                multiple
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={handleGalleryUpload}
+              />
+              <button
+                type="button"
+                disabled={uploadingGallery}
+                onClick={() => galleryInputRef.current?.click()}
+                className="flex h-20 w-20 items-center justify-center rounded-lg border border-dashed border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:opacity-50"
+                aria-label="Agregar imágenes a la galería"
+              >
+                {uploadingGallery ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Plus className="h-5 w-5" />
+                )}
+              </button>
+            </>
+          )}
+        </div>
+        {errors.images && <p className="text-xs text-destructive">{errors.images.message}</p>}
+      </div>
+
+      <div className="divide-y divide-border rounded-lg border border-border">
         <Controller
           control={control}
           name="isFeatured"
           render={({ field }) => (
-            <div className="flex items-center justify-between gap-2">
-              <Label htmlFor="isFeatured" className="cursor-pointer">
-                Destacado
-              </Label>
+            <div className="flex items-center justify-between gap-4 p-4">
+              <div className="space-y-0.5">
+                <Label htmlFor="isFeatured" className="cursor-pointer">
+                  Destacado
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Muestra la insignia &quot;Destacado&quot; en la tarjeta del catálogo.
+                </p>
+              </div>
               <Switch id="isFeatured" checked={field.value} onCheckedChange={field.onChange} />
-            </div>
-          )}
-        />
-        <Controller
-          control={control}
-          name="isActive"
-          render={({ field }) => (
-            <div className="flex items-center justify-between gap-2">
-              <Label htmlFor="isActive" className="cursor-pointer">
-                Activo
-              </Label>
-              <Switch id="isActive" checked={field.value} onCheckedChange={field.onChange} />
             </div>
           )}
         />
@@ -248,11 +356,33 @@ export function ProductForm({ categories, product }: ProductFormProps) {
           control={control}
           name="isOnSale"
           render={({ field }) => (
-            <div className="flex items-center justify-between gap-2">
-              <Label htmlFor="isOnSale" className="cursor-pointer">
-                En oferta
-              </Label>
+            <div className="flex items-center justify-between gap-4 p-4">
+              <div className="space-y-0.5">
+                <Label htmlFor="isOnSale" className="cursor-pointer">
+                  En oferta
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Muestra la insignia &quot;Oferta&quot; en la tarjeta del catálogo.
+                </p>
+              </div>
               <Switch id="isOnSale" checked={field.value} onCheckedChange={field.onChange} />
+            </div>
+          )}
+        />
+        <Controller
+          control={control}
+          name="isActive"
+          render={({ field }) => (
+            <div className="flex items-center justify-between gap-4 p-4">
+              <div className="space-y-0.5">
+                <Label htmlFor="isActive" className="cursor-pointer">
+                  Activo
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Si está apagado, el producto se oculta del catálogo público (sigue existiendo acá).
+                </p>
+              </div>
+              <Switch id="isActive" checked={field.value} onCheckedChange={field.onChange} />
             </div>
           )}
         />

@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
+import { SessionProvider } from "@/components/providers/session-provider";
 import { ProductFiltersProvider } from "@/components/products/product-filters-context";
 import { Toaster } from "@/components/ui/sonner";
 import { siteConfig } from "@/config/site";
@@ -45,20 +46,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased theme-transition`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange={false}>
-          <QueryProvider>
-            {/*
-              A single, app-wide filters context so the header's search bar
-              and the catalog's sidebar/grid (rendered as siblings on the
-              home page) always read and write the same state. Nesting a
-              second provider further down would silently split them into
-              two independent instances — see Storefront, which intentionally
-              does NOT wrap itself in another provider.
-            */}
-            <ProductFiltersProvider>
-              {children}
-              <Toaster />
-            </ProductFiltersProvider>
-          </QueryProvider>
+          <SessionProvider>
+            <QueryProvider>
+              {/*
+                A single, app-wide filters context so the header's search bar
+                and the catalog's sidebar/grid (rendered as siblings on the
+                home page) always read and write the same state. Nesting a
+                second provider further down would silently split them into
+                two independent instances — see Storefront, which intentionally
+                does NOT wrap itself in another provider.
+              */}
+              <ProductFiltersProvider>
+                {children}
+                <Toaster />
+              </ProductFiltersProvider>
+            </QueryProvider>
+          </SessionProvider>
         </ThemeProvider>
       </body>
     </html>

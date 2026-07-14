@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { StatsCards } from "@/components/admin/stats-cards";
+import { OutOfStockList } from "@/components/admin/out-of-stock-list";
 
 export const metadata: Metadata = {
   title: "Panel",
@@ -17,6 +18,7 @@ export default function AdminDashboardPage() {
         </p>
       </div>
       <StatsCards />
+      <OutOfStockList />
     </div>
   );
 }

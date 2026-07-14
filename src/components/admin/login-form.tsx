@@ -27,7 +27,7 @@ export function LoginForm() {
 
   const onSubmit = async (values: LoginInput) => {
     setServerError(null);
-    const result = await signIn("credentials", {
+    const result = await signIn("admin", {
       ...values,
       redirect: false,
     });

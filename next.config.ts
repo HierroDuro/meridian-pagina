@@ -32,7 +32,10 @@ const securityHeaders = [
   },
   {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(), interest-cohort=()",
+    // microphone=(self) allows the chat's voice-message recorder
+    // (getUserMedia) to prompt for mic access; camera/geolocation stay
+    // fully disabled since nothing in the app uses them.
+    value: "camera=(), microphone=(self), geolocation=(), interest-cohort=()",
   },
   {
     key: "Content-Security-Policy",
@@ -44,7 +47,13 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob:",
       "font-src 'self' data:",
-      "connect-src 'self'",
+      // blob: needed for the chat's voice-message preview: it plays from a
+      // local blob: URL (via <audio>, governed by media-src) and decodes it
+      // into a waveform (via fetch, governed by connect-src) before it's
+      // ever uploaded — without both, the recording plays back silently or
+      // not at all.
+      "media-src 'self' blob:",
+      "connect-src 'self' blob:",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",

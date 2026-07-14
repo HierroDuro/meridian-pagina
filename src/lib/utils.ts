@@ -36,3 +36,13 @@ export function truncate(text: string, maxLength: number) {
   if (text.length <= maxLength) return text;
   return `${text.slice(0, maxLength).trimEnd()}…`;
 }
+
+/** Moves out-of-stock items to the end, keeping each group's existing
+ * relative order — used everywhere the customer-facing catalog lists
+ * products, so "Agotado" items don't crowd out what's actually
+ * purchasable without hiding them entirely. */
+export function sortAvailableFirst<T extends { stock: number }>(items: T[]): T[] {
+  const available = items.filter((item) => item.stock > 0);
+  const unavailable = items.filter((item) => item.stock <= 0);
+  return [...available, ...unavailable];
+}

@@ -8,13 +8,15 @@ import { useProductFilters } from "@/components/products/product-filters-context
 import type { CategoryDTO } from "@/types/product";
 
 /**
- * Shared filter UI (categories, En oferta, Con stock, limpiar filtros).
+ * Shared filter UI (categories, En oferta, limpiar filtros). Products with
+ * no stock are never sent by the API at all, so there is no "Con stock"
+ * filter here — it would always be a no-op.
  * Rendered inside the sticky desktop sidebar and inside the mobile
  * filters dialog so both stay in sync automatically through context —
  * no duplicated state, just duplicated markup.
  */
 export function FilterPanelContent({ categories }: { categories: CategoryDTO[] }) {
-  const { filters, toggleCategory, setOnSale, setInStock, clearAll, activeFilterCount } =
+  const { filters, toggleCategory, setOnSale, clearAll, activeFilterCount } =
     useProductFilters();
 
   return (
@@ -53,16 +55,6 @@ export function FilterPanelContent({ categories }: { categories: CategoryDTO[] }
           />
           <Label htmlFor="filter-on-sale" className="cursor-pointer text-sm font-normal text-foreground/80">
             En oferta
-          </Label>
-        </div>
-        <div className="flex items-center gap-2.5">
-          <Checkbox
-            id="filter-in-stock"
-            checked={filters.inStock}
-            onCheckedChange={(checked) => setInStock(Boolean(checked))}
-          />
-          <Label htmlFor="filter-in-stock" className="cursor-pointer text-sm font-normal text-foreground/80">
-            Con stock
           </Label>
         </div>
       </div>

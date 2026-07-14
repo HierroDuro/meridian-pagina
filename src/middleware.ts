@@ -29,7 +29,10 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
-  const isAuthenticated = Boolean(req.auth);
+  // A customer session must NEVER satisfy an admin check — this single
+  // NextAuth instance serves both "admin" and "customer" sessions (see
+  // auth.config.ts), so presence of a session alone isn't enough.
+  const isAuthenticated = req.auth?.user?.userType === "admin";
 
   if (isLoginPage) {
     // Already logged in? Skip the login screen.

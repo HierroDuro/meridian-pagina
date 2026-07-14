@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { authConfig } from "@/lib/auth.config";
 import { prisma } from "@/lib/prisma";
 import { loginSchema } from "@/lib/validations/auth.schema";
+import { customerLoginSchema } from "@/lib/validations/customer-auth.schema";
 import { rateLimit } from "@/lib/rate-limit";
 
 /**
@@ -33,6 +34,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   providers: [
     Credentials({
+      id: "admin",
       name: "credentials",
       credentials: {
         username: { label: "Usuario", type: "text" },
@@ -76,6 +78,49 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: admin.id,
           name: admin.username,
           role: admin.role,
+          userType: "admin",
+        };
+      },
+    }),
+    Credentials({
+      id: "customer",
+      name: "customer-credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Contraseña", type: "password" },
+      },
+      async authorize(rawCredentials, request) {
+        const parsed = customerLoginSchema.safeParse(rawCredentials);
+        if (!parsed.success) return null;
+
+        const { email, password } = parsed.data;
+
+        const ip =
+          request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+          request.headers.get("x-real-ip") ??
+          "unknown";
+        const limited = rateLimit(`customer-login:${ip}:${email.toLowerCase()}`, 5, 60_000);
+        if (!limited.success) {
+          throw new Error("Demasiados intentos. Esperá un minuto antes de volver a intentar.");
+        }
+
+        const customer = await prisma.user.findUnique({
+          where: { email: email.toLowerCase() },
+        });
+
+        const passwordHash =
+          customer?.passwordHash ?? "$2a$12$invalidsaltinvalidsaltinvalidsaltinvalidsalt.";
+        const isValid = await bcrypt.compare(password, passwordHash);
+
+        if (!customer || !isValid) {
+          throw new Error("Email o contraseña incorrectos.");
+        }
+
+        return {
+          id: customer.id,
+          name: customer.name,
+          email: customer.email,
+          userType: "customer",
         };
       },
     }),

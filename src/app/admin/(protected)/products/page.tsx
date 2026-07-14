@@ -15,13 +15,16 @@ export const metadata: Metadata = {
 async function getProducts(): Promise<ProductDTO[]> {
   const products = await prisma.product.findMany({
     orderBy: { createdAt: "desc" },
-    include: { category: { select: { id: true, name: true, slug: true } } },
+    include: {
+      category: { select: { id: true, name: true, slug: true } },
+      images: { orderBy: { order: "asc" } },
+    },
   });
 
   return products.map((p) => ({
     ...p,
     price: Number(p.price),
-    salePrice: p.salePrice ? Number(p.salePrice) : null,
+    images: p.images.map((i) => i.url),
     createdAt: p.createdAt.toISOString(),
     updatedAt: p.updatedAt.toISOString(),
   }));

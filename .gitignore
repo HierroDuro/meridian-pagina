@@ -37,9 +37,7 @@ next-env.d.ts
 # prisma
 /prisma/dev.db
 /prisma/dev.db-journal
-
-# uploaded product images (kept out of git, stored on disk/volume)
-/public/uploads
+/prisma/migrations.sqlite-backup
 
 # local Claude Code config
 /.claude

@@ -40,7 +40,9 @@ async function main() {
       throw new Error(`Categoría desconocida para el producto ${product.sku}: ${product.categorySlug}`);
     }
 
-    await prisma.product.upsert({
+    const galleryImages = product.galleryImages ?? [];
+
+    const saved = await prisma.product.upsert({
       where: { sku: product.sku },
       update: {
         name: product.name,
@@ -51,7 +53,6 @@ async function main() {
         imageUrl: `/placeholders/${product.sku}.png`,
         isFeatured: product.isFeatured,
         isOnSale: product.isOnSale,
-        salePrice: product.salePrice ?? null,
         categoryId,
       },
       create: {
@@ -64,11 +65,20 @@ async function main() {
         imageUrl: `/placeholders/${product.sku}.png`,
         isFeatured: product.isFeatured,
         isOnSale: product.isOnSale,
-        salePrice: product.salePrice ?? null,
         categoryId,
         isActive: true,
       },
     });
+
+    // Re-seedable: drop and recreate the gallery so re-running the seed
+    // doesn't pile up duplicate images on every run.
+    await prisma.productImage.deleteMany({ where: { productId: saved.id } });
+    if (galleryImages.length > 0) {
+      await prisma.productImage.createMany({
+        data: galleryImages.map((url, order) => ({ url, order, productId: saved.id })),
+      });
+    }
+
     productCount += 1;
   }
   console.log(`✔ ${productCount} productos listos`);

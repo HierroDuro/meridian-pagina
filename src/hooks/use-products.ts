@@ -12,7 +12,6 @@ function buildQueryString(filters: ProductFiltersState, debouncedSearch: string)
   filters.categorySlugs.forEach((slug) => params.append("categorySlugs", slug));
   filters.brands.forEach((brand) => params.append("brands", brand));
   if (filters.onSale) params.set("onSale", "true");
-  if (filters.inStock) params.set("inStock", "true");
   if (filters.featuredOnly) params.set("featuredOnly", "true");
   params.set("sort", filters.sort);
   params.set("pageSize", "60");
