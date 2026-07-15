@@ -27,6 +27,10 @@ export const productObjectSchema = z.object({
   brand: z.string().trim().min(1, "La marca es obligatoria").max(80),
   price: z.coerce.number().positive("El precio debe ser mayor a 0"),
   isOnSale: z.boolean().default(false),
+  // Solo relevante con isOnSale activo — controla el banner corredizo de
+  // la home, no la sección "Ofertas" del feed curado (esa siempre muestra
+  // todos los productos en oferta).
+  showInBanner: z.boolean().default(true),
   // Precio de lista (antes del descuento) — opcional, solo tiene sentido
   // con isOnSale activo. Un input vacío se normaliza a `null` (no a
   // `undefined`) para que updateProduct pueda *borrar* un precio original

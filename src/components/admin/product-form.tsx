@@ -58,6 +58,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
           price: product.price,
           originalPrice: product.originalPrice ?? null,
           isOnSale: product.isOnSale,
+          showInBanner: product.showInBanner,
           stock: product.stock,
           imageUrl: product.imageUrl,
           images: product.images,
@@ -69,6 +70,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
           isFeatured: false,
           isActive: true,
           isOnSale: false,
+          showInBanner: true,
           originalPrice: null,
           stock: 0,
           images: [],
@@ -392,6 +394,27 @@ export function ProductForm({ categories, product }: ProductFormProps) {
             </div>
           )}
         />
+        {isOnSale && (
+          <Controller
+            control={control}
+            name="showInBanner"
+            render={({ field }) => (
+              <div className="flex items-center justify-between gap-4 bg-muted/30 p-4">
+                <div className="space-y-0.5">
+                  <Label htmlFor="showInBanner" className="cursor-pointer">
+                    Mostrar en el banner corredizo
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Incluye este producto en la franja de ofertas que se desliza sola arriba de
+                    la home. No afecta la sección &quot;Ofertas&quot; del catálogo, que siempre
+                    muestra todos los productos en oferta.
+                  </p>
+                </div>
+                <Switch id="showInBanner" checked={field.value} onCheckedChange={field.onChange} />
+              </div>
+            )}
+          />
+        )}
         <Controller
           control={control}
           name="isActive"

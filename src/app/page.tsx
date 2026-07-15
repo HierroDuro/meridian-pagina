@@ -27,11 +27,13 @@ async function getCategories(): Promise<CategoryDTO[]> {
   }));
 }
 
-/** Feeds the hero banner's auto-scrolling strip — every active on-sale
- * product, same "isOnSale" flag the rest of the catalog already uses. */
+/** Feeds the hero banner's auto-scrolling strip. `showInBanner` is a
+ * separate opt-out from `isOnSale` (default true) — admins can keep a
+ * product on sale (badge, "Ofertas" section, struck price) without it
+ * cluttering this banner specifically. See product-form.tsx. */
 async function getOnSaleProducts(): Promise<ProductDTO[]> {
   const products = await prisma.product.findMany({
-    where: { isActive: true, isOnSale: true },
+    where: { isActive: true, isOnSale: true, showInBanner: true },
     orderBy: { createdAt: "desc" },
     include: {
       category: { select: { id: true, name: true, slug: true } },

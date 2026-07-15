@@ -52,6 +52,12 @@ model Product {
   isFeatured    Boolean  @default(false)
   isActive      Boolean  @default(true)
   isOnSale      Boolean  @default(false)
+  // Solo importa junto a isOnSale: controla si el producto aparece en el
+  // banner corredizo de la home (Hero). No afecta la sección "Ofertas" del
+  // feed curado más abajo, que sigue mostrando *todos* los productos en
+  // oferta sin importar este flag. Default true para no romper el banner
+  // de los productos ya marcados isOnSale antes de que existiera este campo.
+  showInBanner  Boolean  @default(true)
 
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
