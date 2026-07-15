@@ -130,6 +130,7 @@ export function ProductTable({ products }: { products: ProductDTO[] }) {
               <TableHead>Precio</TableHead>
               <TableHead>Stock</TableHead>
               <TableHead>Destacado</TableHead>
+              <TableHead>Oferta</TableHead>
               <TableHead>Activo</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
@@ -164,6 +165,13 @@ export function ProductTable({ products }: { products: ProductDTO[] }) {
                     checked={product.isFeatured}
                     disabled={pendingId === product.id}
                     onCheckedChange={(checked) => handleToggle(product, "isFeatured", checked)}
+                  />
+                </TableCell>
+                <TableCell>
+                  <Switch
+                    checked={product.isOnSale}
+                    disabled={pendingId === product.id}
+                    onCheckedChange={(checked) => handleToggle(product, "isOnSale", checked)}
                   />
                 </TableCell>
                 <TableCell>
@@ -229,7 +237,7 @@ export function ProductTable({ products }: { products: ProductDTO[] }) {
               </span>
             </div>
 
-            <div className="mt-3 flex items-center justify-between gap-4 rounded-md bg-muted/40 px-3 py-2">
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-md bg-muted/40 px-3 py-2">
               <div className="flex items-center gap-2">
                 <Label htmlFor={`featured-${product.id}`} className="cursor-pointer text-xs">
                   Destacado
@@ -239,6 +247,17 @@ export function ProductTable({ products }: { products: ProductDTO[] }) {
                   checked={product.isFeatured}
                   disabled={pendingId === product.id}
                   onCheckedChange={(checked) => handleToggle(product, "isFeatured", checked)}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Label htmlFor={`onsale-${product.id}`} className="cursor-pointer text-xs">
+                  Oferta
+                </Label>
+                <Switch
+                  id={`onsale-${product.id}`}
+                  checked={product.isOnSale}
+                  disabled={pendingId === product.id}
+                  onCheckedChange={(checked) => handleToggle(product, "isOnSale", checked)}
                 />
               </div>
               <div className="flex items-center gap-2">
