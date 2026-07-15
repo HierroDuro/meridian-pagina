@@ -1,5 +1,6 @@
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { Hero } from "@/components/layout/hero";
 import { Storefront } from "@/components/products/storefront";
 import { SearchBar } from "@/components/products/search-bar";
 import { prisma } from "@/lib/prisma";
@@ -28,6 +29,7 @@ async function getCategories(): Promise<CategoryDTO[]> {
 
 export default async function HomePage() {
   const categories = await getCategories();
+  const productCount = categories.reduce((sum, c) => sum + (c.productCount ?? 0), 0);
 
   return (
     <div className="min-h-screen">
@@ -36,6 +38,8 @@ export default async function HomePage() {
         className="mx-auto max-w-[1920px] px-6 pb-20 lg:px-10"
         style={{ paddingTop: siteConfig.headerHeight + 32 }}
       >
+        <Hero productCount={productCount} categoryCount={categories.length} />
+
         {/* The header's search bar is hidden below `md`; this gives mobile
             users the same real-time search without cramming it into the
             fixed 75px header. */}
