@@ -120,7 +120,7 @@ export function ProductImageGallery({ images, alt }: ProductImageGalleryProps) {
               aria-label={`Ver imagen ${index + 1} de ${alt}`}
               aria-current={index === activeIndex}
               className={cn(
-                "relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 bg-muted/40 transition-colors",
+                "relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 bg-white transition-colors",
                 index === activeIndex
                   ? "border-primary"
                   : "border-transparent hover:border-border",
@@ -143,7 +143,7 @@ export function ProductImageGallery({ images, alt }: ProductImageGalleryProps) {
           ref={containerRef}
           onMouseMove={handleMouseMove}
           onMouseLeave={() => setIsZooming(false)}
-          className="relative aspect-square w-full cursor-crosshair overflow-hidden rounded-xl border border-border bg-muted/40"
+          className="relative aspect-square w-full cursor-crosshair overflow-hidden rounded-xl border border-border bg-white"
         >
           <Image
             ref={imgElRef}

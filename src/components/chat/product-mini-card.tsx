@@ -30,7 +30,7 @@ export function ProductMiniCard(product: ProductMiniCardProps) {
       className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-soft transition-shadow hover:shadow-card-hover sm:flex-row sm:items-center sm:gap-4"
     >
       <div className="flex min-w-0 flex-1 gap-4">
-        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-muted/40">
+        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-white">
           <Image src={product.imageUrl} alt={product.name} fill className="object-contain p-1.5" />
         </div>
         <div className="min-w-0 flex-1">

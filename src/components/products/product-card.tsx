@@ -45,7 +45,10 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
         "hover:border-primary/30 hover:shadow-[0_18px_40px_-16px_hsl(var(--primary)/0.45)]",
       )}
     >
-      <Link href={href} className="relative block aspect-square w-full overflow-hidden bg-muted/40">
+      {/* Fixed white backdrop (not theme-reactive) — product photos are shot
+          on white, so this stays white in dark mode too instead of clashing
+          with the photo's own baked-in background. */}
+      <Link href={href} className="relative block aspect-square w-full overflow-hidden bg-white">
         <div className="absolute left-3 top-3 z-10 flex flex-col items-start gap-1.5">
           {product.isFeatured && (
             <Badge variant="highlight" className="gap-1 px-2.5 py-1 shadow-soft">

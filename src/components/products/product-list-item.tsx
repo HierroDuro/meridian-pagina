@@ -22,7 +22,7 @@ export function ProductListItem({ product, index = 0 }: { product: ProductDTO; i
       transition={{ duration: 0.3, delay: Math.min(index, 10) * 0.02 }}
       className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-soft transition-shadow hover:border-primary/30 hover:shadow-[0_14px_32px_-16px_hsl(var(--primary)/0.4)]"
     >
-      <Link href={href} className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-muted/40">
+      <Link href={href} className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-white">
         {product.isFeatured && (
           <Badge variant="highlight" className="absolute left-1 top-1 z-10 gap-0.5 px-1.5 py-0 text-[10px]">
             <Star className="h-2.5 w-2.5 fill-current" />
