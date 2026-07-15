@@ -51,7 +51,14 @@ export function ProductListItem({ product, index = 0 }: { product: ProductDTO; i
       </div>
 
       <div className="flex shrink-0 flex-col items-end gap-2">
-        <span className="text-base font-bold text-foreground">{formatCurrency(product.price)}</span>
+        <div className="flex flex-col items-end gap-0.5">
+          {product.isOnSale && product.originalPrice && (
+            <span className="text-xs text-muted-foreground line-through">
+              {formatCurrency(product.originalPrice)}
+            </span>
+          )}
+          <span className="text-base font-bold text-foreground">{formatCurrency(product.price)}</span>
+        </div>
         <InquireButton productId={product.id} productName={product.name} />
       </div>
     </motion.article>

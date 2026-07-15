@@ -7,7 +7,7 @@ import { z } from "zod";
  * this is also a first line of defense against XSS payloads stored in
  * free-text fields like `description`.
  */
-export const productSchema = z.object({
+export const productObjectSchema = z.object({
   sku: z
     .string()
     .trim()
@@ -27,6 +27,19 @@ export const productSchema = z.object({
   brand: z.string().trim().min(1, "La marca es obligatoria").max(80),
   price: z.coerce.number().positive("El precio debe ser mayor a 0"),
   isOnSale: z.boolean().default(false),
+  // Precio de lista (antes del descuento) — opcional, solo tiene sentido
+  // con isOnSale activo. Un input vacío se normaliza a `null` (no a
+  // `undefined`) para que updateProduct pueda *borrar* un precio original
+  // ya cargado — Prisma ignora `undefined` en un update pero sí aplica
+  // `null` para limpiar la columna.
+  originalPrice: z.preprocess(
+    (value) => {
+      if (value === null || value === undefined) return null;
+      if (typeof value === "string" && value.trim() === "") return null;
+      return typeof value === "string" ? Number(value) : value;
+    },
+    z.number().positive("El precio original debe ser mayor a 0").nullable(),
+  ),
   stock: z.coerce.number().int().min(0, "El stock no puede ser negativo"),
   imageUrl: z.string().min(1, "La imagen es obligatoria"),
   images: z.array(z.string().min(1)).max(8, "Máximo 8 imágenes de galería").optional().default([]),
@@ -34,6 +47,15 @@ export const productSchema = z.object({
   isFeatured: z.boolean().default(false),
   isActive: z.boolean().default(true),
 });
+
+// `.refine()` wraps the object in a ZodEffects, which loses `.partial()` —
+// exported separately so the PATCH route (partial updates) can still do
+// `productObjectSchema.partial()` while everything else uses the full,
+// refined `productSchema`.
+export const productSchema = productObjectSchema.refine(
+  (data) => !data.originalPrice || data.originalPrice > data.price,
+  { message: "El precio original debe ser mayor al precio actual", path: ["originalPrice"] },
+);
 
 export type ProductInput = z.infer<typeof productSchema>;
 

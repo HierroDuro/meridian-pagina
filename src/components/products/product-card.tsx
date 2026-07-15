@@ -135,7 +135,14 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
         </p>
 
         <div className="mt-auto flex flex-col gap-3 pt-3">
-          <span className="text-lg font-bold text-foreground">{formatCurrency(product.price)}</span>
+          <div className="flex flex-wrap items-baseline gap-2">
+            {product.isOnSale && product.originalPrice && (
+              <span className="text-sm text-muted-foreground line-through">
+                {formatCurrency(product.originalPrice)}
+              </span>
+            )}
+            <span className="text-lg font-bold text-foreground">{formatCurrency(product.price)}</span>
+          </div>
 
           <InquireButton
             productId={product.id}

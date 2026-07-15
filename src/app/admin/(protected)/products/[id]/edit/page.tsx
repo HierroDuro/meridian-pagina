@@ -32,6 +32,7 @@ export default async function EditProductPage({
   const productDTO = {
     ...product,
     price: Number(product.price),
+    originalPrice: product.originalPrice ? Number(product.originalPrice) : null,
     images: product.images.map((i) => i.url),
     createdAt: product.createdAt.toISOString(),
     updatedAt: product.updatedAt.toISOString(),

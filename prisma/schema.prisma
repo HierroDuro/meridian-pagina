@@ -33,21 +33,25 @@ model Category {
   @@map("categories")
 }
 
-/// Producto del catálogo B2B. Un único precio: cuando `isOnSale` está
-/// activo, el catálogo público solo agrega la etiqueta "OFERTA" — nunca
-/// un segundo precio ni un precio tachado.
+/// Producto del catálogo B2B. `price` es siempre el precio actual (el que
+/// se cobra). `originalPrice` es opcional y solo tiene sentido cuando
+/// `isOnSale` está activo: si está cargado, el catálogo lo muestra
+/// tachado junto al precio actual; si no, solo se ve el precio actual
+/// (comportamiento previo, para productos en oferta sin precio de lista
+/// cargado todavía).
 model Product {
-  id          String  @id @default(cuid())
-  sku         String  @unique
-  name        String
-  description String
-  brand       String
-  price       Decimal
-  stock       Int     @default(0)
-  imageUrl    String
-  isFeatured  Boolean @default(false)
-  isActive    Boolean @default(true)
-  isOnSale    Boolean @default(false)
+  id            String   @id @default(cuid())
+  sku           String   @unique
+  name          String
+  description   String
+  brand         String
+  price         Decimal
+  originalPrice Decimal?
+  stock         Int      @default(0)
+  imageUrl      String
+  isFeatured    Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  isOnSale      Boolean  @default(false)
 
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)

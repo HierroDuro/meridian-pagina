@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Tag } from "lucide-react";
 
 import { ProductCard } from "@/components/products/product-card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -72,22 +73,31 @@ export function CuratedProductFeed() {
 
   return (
     <div className="space-y-10">
-      {visibleSections.map((section, sectionIndex) => (
-        <section key={`${section.categorySlug}-${sectionIndex}`} className="space-y-4">
-          <h2 className="flex items-center gap-2.5 text-lg font-semibold tracking-tight text-foreground">
-            <span
-              aria-hidden
-              className="h-6 w-1.5 rounded-full bg-gradient-to-b from-[hsl(var(--aurora-1))] to-[hsl(var(--aurora-2))]"
-            />
-            {section.categoryName}
-          </h2>
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {section.products.map((product, i) => (
-              <ProductCard key={product.id} product={product} index={i} />
-            ))}
-          </div>
-        </section>
-      ))}
+      {visibleSections.map((section, sectionIndex) => {
+        const isOfertas = section.categorySlug === "ofertas";
+        return (
+          <section key={`${section.categorySlug}-${sectionIndex}`} className="space-y-4">
+            <h2 className="flex items-center gap-2.5 text-lg font-semibold tracking-tight text-foreground">
+              {isOfertas ? (
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-destructive-foreground">
+                  <Tag className="h-3.5 w-3.5" />
+                </span>
+              ) : (
+                <span
+                  aria-hidden
+                  className="h-6 w-1.5 rounded-full bg-gradient-to-b from-[hsl(var(--aurora-1))] to-[hsl(var(--aurora-2))]"
+                />
+              )}
+              {section.categoryName}
+            </h2>
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              {section.products.map((product, i) => (
+                <ProductCard key={product.id} product={product} index={i} />
+              ))}
+            </div>
+          </section>
+        );
+      })}
 
       {visibleCount < totalSections && <div ref={sentinelRef} className="h-10" />}
     </div>

@@ -24,6 +24,12 @@ const CHUNK_SIZE = 12;
  * destacados, then everything else — and out-of-stock products (shown as
  * "Agotado" rather than hidden, see ProductCard) are pushed after
  * all of that, so a section still leads with what's actually purchasable.
+ *
+ * A synthetic "Ofertas" section (not a real Category row — see the
+ * `ofertas` slug below, guaranteed not to collide with a real category
+ * slug) is prepended with every on-sale product across all categories, so
+ * a discounted product is visible both there *and* in its own category
+ * section further down — intentional duplication, not a bug.
  */
 export async function GET() {
   const categories = await prisma.category.findMany({ orderBy: { name: "asc" } });
@@ -38,6 +44,7 @@ export async function GET() {
     const dtos = products.map((p) => ({
       ...p,
       price: Number(p.price),
+      originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
       images: p.images.map((i) => i.url),
       createdAt: p.createdAt.toISOString(),
       updatedAt: p.updatedAt.toISOString(),
@@ -76,6 +83,17 @@ export async function GET() {
     const products = productsByCategory.get(category.slug) ?? [];
     if (products.length === 0) continue;
     sections.push({ categorySlug: category.slug, categoryName: category.name, products });
+  }
+
+  // "Ofertas" — every on-sale product across the whole catalog, up front.
+  // Each product still shows again in its own category section above.
+  const onSaleProducts = sortAvailableFirst(
+    Array.from(productsByCategory.values())
+      .flat()
+      .filter((p) => p.isOnSale),
+  );
+  if (onSaleProducts.length > 0) {
+    sections.unshift({ categorySlug: "ofertas", categoryName: "Ofertas", products: onSaleProducts });
   }
 
   const response: CuratedFeedResponse = { sections };

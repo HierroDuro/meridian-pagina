@@ -24,6 +24,7 @@ async function getProducts(): Promise<ProductDTO[]> {
   return products.map((p) => ({
     ...p,
     price: Number(p.price),
+    originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
     images: p.images.map((i) => i.url),
     createdAt: p.createdAt.toISOString(),
     updatedAt: p.updatedAt.toISOString(),

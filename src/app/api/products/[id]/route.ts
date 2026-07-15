@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/require-admin";
-import { productSchema } from "@/lib/validations/product.schema";
+import { productObjectSchema } from "@/lib/validations/product.schema";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -27,6 +27,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
   return NextResponse.json({
     ...product,
     price: Number(product.price),
+    originalPrice: product.originalPrice ? Number(product.originalPrice) : null,
     images: product.images.map((i) => i.url),
   });
 }
@@ -40,7 +41,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   const { id } = await params;
   const body = await request.json();
-  const parsed = productSchema.partial().safeParse(body);
+  const parsed = productObjectSchema.partial().safeParse(body);
 
   if (!parsed.success) {
     return NextResponse.json(
@@ -67,6 +68,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({
       ...updated,
       price: Number(updated.price),
+      originalPrice: updated.originalPrice ? Number(updated.originalPrice) : null,
     });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {

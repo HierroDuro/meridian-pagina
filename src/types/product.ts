@@ -1,8 +1,11 @@
 import type { Category, Product } from "@prisma/client";
 
 /** Product shape as returned to the client: Decimal fields become plain numbers. */
-export interface ProductDTO extends Omit<Product, "price" | "createdAt" | "updatedAt"> {
+export interface ProductDTO
+  extends Omit<Product, "price" | "originalPrice" | "createdAt" | "updatedAt"> {
   price: number;
+  /** List price before the discount — only meaningful when `isOnSale` is true. */
+  originalPrice: number | null;
   createdAt: string;
   updatedAt: string;
   category: Pick<Category, "id" | "name" | "slug">;

@@ -68,6 +68,7 @@ export default async function ProductPage({ params }: ProductPageParams) {
 
   const gallery = [product.imageUrl, ...product.images.map((i) => i.url)];
   const price = Number(product.price);
+  const originalPrice = product.originalPrice ? Number(product.originalPrice) : null;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -140,7 +141,14 @@ export default async function ProductPage({ params }: ProductPageParams) {
               <span className="font-medium text-foreground">{product.sku}</span>
             </p>
 
-            <span className="text-3xl font-bold text-foreground">{formatCurrency(price)}</span>
+            <div className="flex flex-wrap items-baseline gap-3">
+              {product.isOnSale && originalPrice && (
+                <span className="text-lg text-muted-foreground line-through">
+                  {formatCurrency(originalPrice)}
+                </span>
+              )}
+              <span className="text-3xl font-bold text-foreground">{formatCurrency(price)}</span>
+            </div>
 
             <InquireButton
               productId={product.id}

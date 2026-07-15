@@ -56,6 +56,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
           description: product.description,
           brand: product.brand,
           price: product.price,
+          originalPrice: product.originalPrice ?? null,
           isOnSale: product.isOnSale,
           stock: product.stock,
           imageUrl: product.imageUrl,
@@ -68,6 +69,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
           isFeatured: false,
           isActive: true,
           isOnSale: false,
+          originalPrice: null,
           stock: 0,
           images: [],
         },
@@ -75,6 +77,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
 
   const imageUrl = watch("imageUrl");
   const images = watch("images") ?? [];
+  const isOnSale = watch("isOnSale");
 
   const onSubmit = async (values: ProductInput) => {
     const result = product
@@ -232,6 +235,26 @@ export function ProductForm({ categories, product }: ProductFormProps) {
           {errors.stock && <p className="text-xs text-destructive">{errors.stock.message}</p>}
         </div>
       </div>
+
+      {isOnSale && (
+        <div className="space-y-1.5">
+          <Label htmlFor="originalPrice">Precio original</Label>
+          <Input
+            id="originalPrice"
+            type="number"
+            step="0.01"
+            placeholder="Precio de lista antes del descuento"
+            {...register("originalPrice")}
+          />
+          <p className="text-xs text-muted-foreground">
+            Opcional. Si lo cargás, el catálogo lo muestra tachado junto al precio actual. Dejalo
+            vacío para mostrar solo la insignia &quot;Oferta&quot; sin precio tachado.
+          </p>
+          {errors.originalPrice && (
+            <p className="text-xs text-destructive">{errors.originalPrice.message}</p>
+          )}
+        </div>
+      )}
 
       <div className="space-y-1.5">
         <Label>Imagen del producto</Label>
