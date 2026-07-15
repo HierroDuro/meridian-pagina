@@ -74,7 +74,11 @@ export function CuratedProductFeed() {
     <div className="space-y-10">
       {visibleSections.map((section, sectionIndex) => (
         <section key={`${section.categorySlug}-${sectionIndex}`} className="space-y-4">
-          <h2 className="text-lg font-semibold tracking-tight text-foreground">
+          <h2 className="flex items-center gap-2.5 text-lg font-semibold tracking-tight text-foreground">
+            <span
+              aria-hidden
+              className="h-6 w-1.5 rounded-full bg-gradient-to-b from-[hsl(var(--aurora-1))] to-[hsl(var(--aurora-2))]"
+            />
             {section.categoryName}
           </h2>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">

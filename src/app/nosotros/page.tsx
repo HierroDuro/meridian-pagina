@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function NosotrosPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <Header />
       <main
         className="mx-auto max-w-4xl px-6 pb-24 lg:px-10"

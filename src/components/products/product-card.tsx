@@ -40,7 +40,10 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.35, delay: Math.min(index, 8) * 0.03, ease: "easeOut" }}
       whileHover={{ y: -4 }}
-      className="group flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card shadow-soft transition-shadow duration-300 hover:shadow-card-hover"
+      className={cn(
+        "group flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card shadow-soft transition-shadow duration-300",
+        "hover:border-primary/30 hover:shadow-[0_18px_40px_-16px_hsl(var(--primary)/0.45)]",
+      )}
     >
       <Link href={href} className="relative block aspect-square w-full overflow-hidden bg-muted/40">
         <div className="absolute left-3 top-3 z-10 flex flex-col items-start gap-1.5">

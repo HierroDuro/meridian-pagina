@@ -30,7 +30,7 @@ export default async function HomePage() {
   const categories = await getCategories();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <Header />
       <main
         className="mx-auto max-w-[1920px] px-6 pb-20 lg:px-10"

@@ -70,7 +70,11 @@ export function InquireButton({
         onClick={handleClick}
         disabled={disabled || loading}
         aria-label={`Consultar por ${productName}`}
-        className={cn("gap-2", className)}
+        className={cn(
+          "gap-2 bg-gradient-to-r from-primary to-[hsl(var(--aurora-2))] shadow-[0_6px_18px_-6px_hsl(var(--primary)/0.55)]",
+          "transition-[filter,box-shadow] hover:from-primary hover:to-[hsl(var(--aurora-2))] hover:brightness-110 hover:shadow-[0_10px_24px_-6px_hsl(var(--primary)/0.7)]",
+          className,
+        )}
         size={size}
       >
         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquareText className="h-4 w-4" />}

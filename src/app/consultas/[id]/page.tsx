@@ -37,7 +37,7 @@ export default async function ConversationPage({
   if (!context) notFound();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <Header />
       <main
         className="mx-auto max-w-2xl px-6 pb-24 lg:px-10"

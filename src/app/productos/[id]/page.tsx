@@ -88,7 +88,7 @@ export default async function ProductPage({ params }: ProductPageParams) {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <Header />
       {/* Static JSON-LD we build ourselves from trusted DB fields, not user input. */}
       <script

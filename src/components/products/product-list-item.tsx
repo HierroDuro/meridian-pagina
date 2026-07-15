@@ -20,7 +20,7 @@ export function ProductListItem({ product, index = 0 }: { product: ProductDTO; i
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: Math.min(index, 10) * 0.02 }}
-      className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-soft transition-shadow hover:shadow-card-hover"
+      className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-soft transition-shadow hover:border-primary/30 hover:shadow-[0_14px_32px_-16px_hsl(var(--primary)/0.4)]"
     >
       <Link href={href} className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-muted/40">
         {product.isFeatured && (

@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 export default function RegisterPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <Header />
       <main
         className="mx-auto flex max-w-md flex-col justify-center px-6 pb-24"
