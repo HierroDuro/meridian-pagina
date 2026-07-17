@@ -137,8 +137,7 @@ export default async function ProductPage({ params }: ProductPageParams) {
             </h1>
 
             <p className="text-sm text-muted-foreground">
-              Marca <span className="font-medium text-foreground">{product.brand}</span> · SKU{" "}
-              <span className="font-medium text-foreground">{product.sku}</span>
+              Marca <span className="font-medium text-foreground">{product.brand}</span>
             </p>
 
             <div className="flex flex-wrap items-baseline gap-3">

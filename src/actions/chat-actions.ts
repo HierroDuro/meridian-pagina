@@ -322,12 +322,12 @@ export async function getConversationProductContext(conversationId: string) {
     product: {
       id: conversation.product.id,
       name: conversation.product.name,
-      sku: conversation.product.sku,
+      // SKU/stock are internal — only included when an admin is asking,
+      // and omitted entirely (not just hidden in the UI) for customers.
+      sku: adminSession ? conversation.product.sku : undefined,
       brand: conversation.product.brand,
       category: conversation.product.category.name,
       price: Number(conversation.product.price),
-      // Customers must never see stock — only included when an admin is
-      // asking, and omitted entirely (not just hidden in the UI) otherwise.
       stock: adminSession ? conversation.product.stock : undefined,
       imageUrl: conversation.product.imageUrl,
       isFeatured: conversation.product.isFeatured,

@@ -8,7 +8,9 @@ import { cn, formatCurrency } from "@/lib/utils";
 interface ProductMiniCardProps {
   id: string;
   name: string;
-  sku: string;
+  /** Admin-only — customers must never see the SKU, so this (like `stock`)
+   * is left undefined, not just hidden, when rendered on the customer side. */
+  sku?: string;
   brand: string;
   category: string;
   price: number;
@@ -21,7 +23,8 @@ interface ProductMiniCardProps {
 }
 
 /** Shown alongside a conversation so whoever's replying has the product's
- * context at a glance — image, name, SKU, brand, category, price and badges. */
+ * context at a glance — image, name, brand, category, price and badges
+ * (plus SKU and stock for the admin side). */
 export function ProductMiniCard(product: ProductMiniCardProps) {
   return (
     <Link
@@ -54,7 +57,8 @@ export function ProductMiniCard(product: ProductMiniCardProps) {
             Producto: {product.name}
           </h3>
           <p className="truncate text-xs text-muted-foreground">
-            Marca: {product.brand} · SKU: {product.sku}
+            Marca: {product.brand}
+            {product.sku !== undefined && ` · SKU: ${product.sku}`}
           </p>
           {product.stock !== undefined && (
             <p
